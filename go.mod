@@ -34,7 +34,7 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/improbable-eng/grpc-web v0.13.0
-	github.com/kataras/muxie v1.1.1
+	github.com/kataras/muxie v1.1.2
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/miekg/dns v1.1.41 // indirect
