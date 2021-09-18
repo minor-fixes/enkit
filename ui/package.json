@@ -22,7 +22,7 @@
     "postinstall": "patch-package"
   },
   "devDependencies": {
-    "@bazel/runfiles": "^3.5.1",
+    "@bazel/runfiles": "3.8.0",
     "patch-package": "^6.2.2"
   },
   "eslintConfig": {
