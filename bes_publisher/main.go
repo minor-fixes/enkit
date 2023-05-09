@@ -60,5 +60,6 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
+	glog.Infof("Starting listener, sending events to pubsub topic %s/%s", *gcpProjectID, *besPubsubTopic)
 	glog.Exit(server.Run(mux, grpcs, nil))
 }

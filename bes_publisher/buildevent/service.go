@@ -59,15 +59,20 @@ var (
 			"outcome",
 		},
 	)
-	metricBuildEventProtocolStreamCount = promauto.NewCounterVec(prometheus.CounterOpts{
+	metricBuildEventProtocolFinishedStreamCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "bes_publisher",
-		Name:      "bep_stream_count",
+		Name:      "bep_finished_stream_count",
 		Help:      "Number of BEP streams handled, grouped by result",
 	},
 		[]string{
 			"outcome",
 		},
 	)
+	metricBuildEventProtocolOpenStreamCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "bes_publisher",
+		Name:      "bep_open_stream_count",
+		Help:      "Number of BEP streams currently being handled",
+	})
 	metricUnknownBuildType = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "bes_publisher",
 		Name:      "unknown_build_type",
@@ -145,6 +150,9 @@ func (s *Service) PublishLifecycleEvent(ctx context.Context, req *bpb.PublishLif
 
 // PublishBuildToolEventStream handles all the Bazel BES messages seen.
 func (s *Service) PublishBuildToolEventStream(stream bpb.PublishBuildEvent_PublishBuildToolEventStreamServer) (retErr error) {
+	metricBuildEventProtocolOpenStreamCount.Inc()
+	defer metricBuildEventProtocolOpenStreamCount.Dec()
+
 	bs := &buildStream{
 		stream:                        stream,
 		besTopic:                      s.besTopic,
@@ -156,13 +164,13 @@ func (s *Service) PublishBuildToolEventStream(stream bpb.PublishBuildEvent_Publi
 	}
 	if err := bs.handleMessages(); err != nil {
 		glog.Errorf("while handling messages from BEP stream: %v", err)
-		metricBuildEventProtocolStreamCount.WithLabelValues("message_handle_error").Inc()
+		metricBuildEventProtocolFinishedStreamCount.WithLabelValues("message_handle_error").Inc()
 	}
 	if err := bs.Close(); err != nil {
 		glog.Errorf("while finalizing messages from BEP stream: %v", err)
-		metricBuildEventProtocolStreamCount.WithLabelValues("finalize_error").Inc()
+		metricBuildEventProtocolFinishedStreamCount.WithLabelValues("finalize_error").Inc()
 	}
-	metricBuildEventProtocolStreamCount.WithLabelValues("ok").Inc()
+	metricBuildEventProtocolFinishedStreamCount.WithLabelValues("ok").Inc()
 	return nil
 }
 
@@ -251,6 +259,7 @@ func (b *buildStream) updateAttrs(event *bes.BuildEvent) {
 			}
 		} else {
 			metricUnknownBuildType.WithLabelValues("<unset>").Inc()
+			glog.Warningf("Unset build_metadata ROLE key for invocation: %s", b.attrs["inv_id"])
 			// Assume these are "interactive" builds, for backwards-compatibility
 			b.attrs["inv_type"] = "interactive"
 		}
